@@ -138,4 +138,144 @@ public class DatabaseAccessorObject implements DatabaseAccessor {
 		// TODO Auto-generated method stub
 		return null;
 	}
+
+	@Override
+	public Film createFilm(Film aFilm) throws SQLException {
+		// TODO Auto-generated method stub
+		String name = "student";
+		String password = "student";
+
+		Connection conn = DriverManager.getConnection(URL, name, password);
+		String sql = "INSERT INTO film (title, description, release_year, language_id, "
+				+ "rental_duration, rental_rate, length, replacement_cost, rating, special_features) "
+				+ "VALUES (?, ?, ?, 1, ?, ?, ?, ?, ?, ?)";
+
+		boolean committed = false; // To track if transaction is successful
+		try (PreparedStatement ps = conn.prepareStatement(sql, PreparedStatement.RETURN_GENERATED_KEYS)) {
+			conn.setAutoCommit(false); // Begin transaction
+
+			// Set values for the prepared statement
+			ps.setString(1, aFilm.getTitle());
+			ps.setString(2, aFilm.getDescription());
+			ps.setInt(3, aFilm.getReleaseYear());
+			ps.setInt(4, aFilm.getRentalDuration());
+			ps.setDouble(5, aFilm.getRentalRate());
+			ps.setInt(6, aFilm.getLength());
+			ps.setDouble(7, aFilm.getReplacementCost());
+			ps.setString(8, aFilm.getRating());
+			ps.setString(9, aFilm.getSpecialFeatures());
+
+			// Execute the insert statement
+			int affectedRows = ps.executeUpdate();
+			if (affectedRows == 0) {
+				conn.rollback(); // Rollback transaction on failure
+				return null; // Insert failed
+			}
+
+			// Retrieve the generated key (new ID)
+			try (ResultSet generatedKeys = ps.getGeneratedKeys()) {
+				if (generatedKeys.next()) {
+					// Set the generated ID to the Film object
+					aFilm.setId(generatedKeys.getInt(1));
+				} else {
+					conn.rollback(); // Rollback if no key was generated
+					return null; // Failed to retrieve ID
+				}
+			}
+
+			conn.commit(); // Commit transaction on success
+			committed = true;
+		} catch (SQLException e) {
+			conn.rollback(); // Rollback transaction in case of an error
+			throw e;
+		} finally {
+			if (!committed) {
+				conn.setAutoCommit(true); // Restore default auto-commit behavior
+			}
+		}
+
+		return aFilm;
+	}
+
+	@Override
+	public boolean deleteFilm(Film aFilm) throws SQLException {
+		// TODO Auto-generated method stub
+		boolean deleted;
+		boolean committed = false;
+		String name = "student";
+		String password = "student";
+
+		Connection conn = DriverManager.getConnection(URL, name, password);
+		String deleteFilmActorSql = "DELETE FROM film_actor WHERE film_id = ?";
+		String deleteFilmSql = "DELETE FROM film WHERE id = ?";
+
+		try (PreparedStatement ps1 = conn.prepareStatement(deleteFilmActorSql);
+				PreparedStatement ps2 = conn.prepareStatement(deleteFilmSql)) {
+			conn.setAutoCommit(false); 
+
+			ps1.setInt(1, aFilm.getId());
+			ps1.executeUpdate();
+
+			ps2.setInt(1, aFilm.getId());
+			int rowsAffected = ps2.executeUpdate();
+			deleted = rowsAffected > 0;
+
+			conn.commit(); 
+			committed = true;
+		} catch (SQLException e) {
+			conn.rollback(); 
+			throw e;
+		} finally {
+			if (!committed) {
+				conn.setAutoCommit(true);
+			}
+		}
+
+		return deleted;
+	}
+
+	@Override
+	public boolean updateFilm(Film aFilm) throws SQLException {
+		// TODO Auto-generated method stub
+		boolean committed = false;
+		boolean updated;
+		String name = "student";
+		String password = "student";
+
+		Connection conn = DriverManager.getConnection(URL, name, password);
+		String sql = "UPDATE film SET title = ?, description = ?, release_year = ?, "
+				+ "language_id = ?, rental_duration = ?, rental_rate = ?, length = ?, "
+				+ "replacement_cost = ?, rating = ?, special_features = ? WHERE id = ?";
+
+		try (PreparedStatement ps = conn.prepareStatement(sql)) {
+			conn.setAutoCommit(false);
+			ps.setString(1, aFilm.getTitle());
+			ps.setString(2, aFilm.getDescription());
+			ps.setInt(3, aFilm.getReleaseYear());
+			ps.setInt(4, aFilm.getLanguageId());
+			ps.setInt(5, aFilm.getRentalDuration());
+			ps.setDouble(6, aFilm.getRentalRate());
+			ps.setInt(7, aFilm.getLength());
+			ps.setDouble(8, aFilm.getReplacementCost());
+			ps.setString(9, aFilm.getRating());
+			ps.setString(10, aFilm.getSpecialFeatures());
+			ps.setInt(11, aFilm.getId());
+
+			int rowsAffected = ps.executeUpdate();
+			updated = rowsAffected > 0;
+
+			conn.commit();
+			committed = true;
+		} catch (SQLException e) {
+			conn.rollback();
+			throw e;
+		} finally {
+			if (!committed) {
+				conn.setAutoCommit(true);
+			}
+		}
+
+		return updated;
+
+	}
 }
